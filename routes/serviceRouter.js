@@ -1,24 +1,8 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
 const cors = require("./cors");
 
 const Services = require("../models/service");
 const authenticate = require("../authenticate");
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, "public/images/Services");
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname)); // Appending extension
-    }
-});
-
-const upload = multer({ storage });
 
 const ServiceRouter = express.Router();
 
@@ -30,38 +14,29 @@ ServiceRouter.route("/")
                 res.status(200).json(services);
             })
             .catch(next);
-    })
-    .post(
-        upload.fields([{ name: "mainImg", maxCount: 1 }, { name: "secondaryImg", maxCount: 3 }]),
-        cors.corsWithOptions,
-        authenticate.verifyUser,
-        async (req, res) => {
-            const { name, description } = req.body;
-            const mainImg = req.files["mainImg"] ? req.files["mainImg"][0].path.replace(/^public[\/\\]/, "") : null;
-            const secondaryImg = req.files["secondaryImg"]
-                ? req.files["secondaryImg"].map(file => file.path.replace(/^public[\/\\]/, ""))
-                : [];
-    
-            if (!mainImg) {
-                return res.status(400).json({ error: "Main image is required." });
-            }
-    
-            const service = {
-                mainImg,
-                secondaryImg,
-                name,
-                description
-            };
-    
-            try {
-                console.log(service);
-                const newService = await Services.create(service);
-                res.status(201).json(newService);
-            } catch (error) {
-                res.status(500).json({ message: error.message });
-            }
+})
+.post(cors.corsWithOptions, authenticate.verifyUser, async (req, res) => {
+    try {
+        const { name, description, mainImg, secondaryImg } = req.body;
+
+        // Check if main image URL is provided
+        if (!mainImg) {
+            return res.status(400).json({ error: "Main image URL is required." });
         }
-    );    
+
+        // Create new service entry using provided Cloudinary URLs
+        const newService = await Services.create({
+            name,
+            description,
+            mainImg, // Directly storing the URL from frontend
+            secondaryImg: secondaryImg || [] // Ensure secondaryImg is an array
+        });
+
+        res.status(201).json(newService);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}); 
 
 ServiceRouter.route("/:deleteId")
     .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))

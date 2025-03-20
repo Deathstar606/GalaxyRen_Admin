@@ -1,13 +1,8 @@
 var express = require('express');
 var path = require('path');
 var logger = require('morgan');
-//var cookieParser = require('cookie-parser');
-//var session = require('express-session');
-//var FileStore = require('session-file-store')(session);
 var passport = require('passport');
-//var authenticate = require('./authenticate');
 var bodyParser = require('body-parser');
-var config = require('./config');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -24,7 +19,7 @@ const mongoose = require('mongoose');
 mongoose.set('useCreateIndex', true)
 
 // Connection URL
-const url = config.mongoUrl
+const url = process.env.MONGODB_URL
 const connect = mongoose.connect(url, 
   { useNewUrlParser: true, 
     useUnifiedTopology: true })
