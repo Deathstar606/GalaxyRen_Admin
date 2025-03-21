@@ -1,10 +1,16 @@
 const express = require("express");
 const cors = require("./cors");
-
+const { v2: cloudinary } = require("cloudinary");
 const Services = require("../models/service");
 const authenticate = require("../authenticate");
 
 const ServiceRouter = express.Router();
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 ServiceRouter.route("/")
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
@@ -39,19 +45,46 @@ ServiceRouter.route("/")
 }); 
 
 ServiceRouter.route("/:deleteId")
-    .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .delete(cors.cors, (req, res, next) => {
-        Services.findByIdAndRemove(req.params.deleteId)
-            .then((response) => {
-                if (response) {
-                    res.status(200).json(response);
-                } else {
-                    const err = new Error(`Service ${req.params.deleteId} not found`);
-                    err.status = 404;
-                    return next(err);
-                }
-            })
-            .catch(next);
+    .options(cors.corsWithOptions, authenticate.verifyUser, (req, res) => res.sendStatus(200))
+    .delete(cors.cors, async (req, res, next) => {
+        try {
+            // Find the service by ID
+            const service = await Services.findById(req.params.deleteId);
+            if (!service) {
+                return res.status(404).json({ error: `Service ${req.params.deleteId} not found` });
+            }
+
+            // Extract image URLs
+            const { mainImg, secondaryImg } = service;
+
+            // Function to extract public ID from Cloudinary URL
+            const getPublicId = (url) => {
+                const parts = url.split("/");
+                return parts[parts.length - 1].split(".")[0]; // Extracts the public ID
+            };
+
+            // Delete main image from Cloudinary
+            if (mainImg) {
+                const mainImgPublicId = getPublicId(mainImg);
+                await cloudinary.uploader.destroy(`galaxyReno/services/${mainImgPublicId}`);
+            }
+
+            // Delete secondary images from Cloudinary
+            if (secondaryImg && Array.isArray(secondaryImg)) {
+                const deletePromises = secondaryImg.map(imgUrl => {
+                    const publicId = getPublicId(imgUrl);
+                    return cloudinary.uploader.destroy(`galaxyReno/services/${publicId}`);
+                });
+                await Promise.all(deletePromises);
+            }
+
+            // Delete the service from the database
+            await Services.findByIdAndRemove(req.params.deleteId);
+
+            res.status(200).json({ message: "Service and associated images deleted successfully." });
+        } catch (error) {
+            next(error);
+        }
     });
 
 module.exports = ServiceRouter;
