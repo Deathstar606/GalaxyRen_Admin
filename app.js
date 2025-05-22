@@ -25,6 +25,7 @@ var mailRouter = require('./routes/mailRouter');
 const allowedOrigins = [
   'https://deathstar606.github.io',
   'http://localhost:3000',
+  'https://galaxyreno.vercel.app/',
   undefined,
 ];
 
