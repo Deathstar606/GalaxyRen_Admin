@@ -6,6 +6,14 @@ var bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 
+const connectToDatabase = require('./utils/db');
+const mongoose = require('mongoose');
+
+// Optional but recommended
+mongoose.set('useCreateIndex', true);
+mongoose.set('strictQuery', false);
+mongoose.set('bufferCommands', false); // 💡 prevent buffering when disconnected
+
 var index = require('./routes/index');
 var users = require('./routes/users');
 var services = require('./routes/serviceRouter');
@@ -13,20 +21,6 @@ var tools = require('./routes/toolsRouter');
 var rents = require('./routes/rentRouter');
 var contact = require('./routes/contactRouter');
 var mailRouter = require('./routes/mailRouter');
-
-const mongoose = require('mongoose');
-
-mongoose.set('useCreateIndex', true)
-
-// Connection URL
-const url = process.env.MONGODB_URL
-const connect = mongoose.connect(url, 
-  { useNewUrlParser: true, 
-    useUnifiedTopology: true })
- 
-connect.then((db) => {
-    console.log("Connected to DB");
-}, (err) => { console.log(err); });
 
 const allowedOrigins = [
   'https://deathstar606.github.io',
@@ -68,6 +62,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(passport.initialize());
+
+// ✅ Ensure DB connection before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (err) {
+    console.error('Error connecting to DB:', err);
+    res.status(500).json({ error: 'Database connection error' });
+  }
+});
 
 app.use('/', index);
 app.use('/users', users);

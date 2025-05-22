@@ -23,7 +23,7 @@ ServiceRouter.route("/")
 })
 .post(cors.corsWithOptions, authenticate.verifyUser, async (req, res) => {
     try {
-        const { name, description, mainImg, secondaryImg } = req.body;
+        const { name, description, mainImg } = req.body;
 
         // Check if main image URL is provided
         if (!mainImg) {
@@ -34,8 +34,7 @@ ServiceRouter.route("/")
         const newService = await Services.create({
             name,
             description,
-            mainImg, // Directly storing the URL from frontend
-            secondaryImg: secondaryImg || [] // Ensure secondaryImg is an array
+            mainImg,
         });
 
         res.status(201).json(newService);
@@ -55,7 +54,7 @@ ServiceRouter.route("/:deleteId")
             }
 
             // Extract image URLs
-            const { mainImg, secondaryImg } = service;
+            const { mainImg } = service;
 
             // Function to extract public ID from Cloudinary URL
             const getPublicId = (url) => {
@@ -70,13 +69,13 @@ ServiceRouter.route("/:deleteId")
             }
 
             // Delete secondary images from Cloudinary
-            if (secondaryImg && Array.isArray(secondaryImg)) {
+/*             if (secondaryImg && Array.isArray(secondaryImg)) {
                 const deletePromises = secondaryImg.map(imgUrl => {
                     const publicId = getPublicId(imgUrl);
                     return cloudinary.uploader.destroy(`galaxyReno/services/${publicId}`);
                 });
                 await Promise.all(deletePromises);
-            }
+            } */
 
             // Delete the service from the database
             await Services.findByIdAndRemove(req.params.deleteId);
