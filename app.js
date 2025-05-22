@@ -25,7 +25,7 @@ var mailRouter = require('./routes/mailRouter');
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'https://galaxyreno.vercel.app/',
+      'https://galaxyreno.vercel.app',
       'https://deathstar606.github.io',
       'http://localhost:3000'
     ];
