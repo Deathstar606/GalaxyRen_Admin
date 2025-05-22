@@ -22,24 +22,23 @@ var rents = require('./routes/rentRouter');
 var contact = require('./routes/contactRouter');
 var mailRouter = require('./routes/mailRouter');
 
-const allowedOrigins = [
-  'https://deathstar606.github.io',
-  'http://localhost:3000',
-  'https://galaxyreno.vercel.app/',
-  undefined,
-];
-
 const corsOptions = {
   origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin) || origin === "null") {
+    const allowedOrigins = [
+      'https://deathstar606.github.io',
+      'http://localhost:3000',
+      'https://galaxyreno.vercel.app/',
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log("the Origin Denied: ", origin)
-      callback(new Error('Not allowed by CORS'));
+      const error = new Error(`Not allowed by CORS: ${origin}`);
+      error.status = 403;
+      callback(error);
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200 
+  optionsSuccessStatus: 200,
 };
 
 var app = express();
